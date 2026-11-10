@@ -75,26 +75,25 @@ class hydro_sim():
 
         return
 
-    def propagate_hydro(self,t_end,tsteps):
+    def propagate_hydro(self,dt):
         """
         todo figure out what the disk propagation should ask and do
         
         """
-        dt = t_end/tsteps
-        while self.time < t_end:
 
-            self.old_time = self.time
-            self.time += dt 
 
-            self.hydro.evolve_model(self.time)
-            self.hydro_to_disk.copy()
-            return
+        self.old_time = self.time
+        self.time += dt 
+
+        self.hydro.evolve_model(self.time)
+        self.hydro_to_disk.copy()
+        return
 
 
 if __name__ == "__main__":
     """
     This block of code only runs if this file specifically is ran, not if this code is imported from another module.
-    Use this to test whether everything is working properly and test your code independently of the rest.
+    Use this to test whether everything is working propersly and test your code independently of the rest.
     """
     sim = hydro_sim()
 
