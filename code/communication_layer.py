@@ -11,8 +11,7 @@ and the simulation is managed. This is also the layer the main program will inte
 
 class simulation:
     def __init__(self):
-        self.hydro_1 = hydro_sim()
-        self.hydro_2 = hydro_sim()
+        self.hydro = hydro_sim()
         self.grav = grav()
         pass
 
@@ -30,12 +29,14 @@ class simulation:
         """
 
 
-        self.hydro_1.create_disk(masses_disks[0],inner_gaps[0],outer_radii,masses_bh[0],particles_per_disk)
-        self.hydro_2.create_disk(masses_disks[1],inner_gaps[1],outer_radii,masses_bh[1],particles_per_disk)
+        self.hydro.create_disk(masses_disks,inner_gaps,outer_radii,masses_bh,particles_per_disk,location_bh,vel_bh)
 
-        self.hydro_1.setup_hydro_simulation(Gadget2)
-        self.hydro_2.setup_hydro_simulation(Gadget2)
 
+        particles = self.grav.particles
+
+        self.hydro.setup_hydro_simulation(Gadget2,particles)
+
+        self.update_particles_to_disks = self.grav.grav.particles.new_channel_to(self.hydro.hydro.dm_particles)
 
         return
 
@@ -44,12 +45,16 @@ class simulation:
         iterate the simulations.
         """
         t = 0 |units.yr
+        treshold= 100
 
         while t < t_end:
+            t+= timestep
+            self.hydro.propagate_hydro(timestep)
 
-            self.hydro_1.propagate_hydro()
-            self.hydro_2.propagate_hydro()
+            new_stars = self.hydro_1.check_high_density()
 
+            self.grav.particles.add_particles(new_stars)
+            self.update_particles_to_disks.update()
 
 
 

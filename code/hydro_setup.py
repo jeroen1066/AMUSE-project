@@ -12,7 +12,7 @@ class hydro_sim():
     def __init__(self):
         pass
 
-    def create_disk(self, disk_mass, disk_inner_radius, disk_outer_radius, bh_mass, n_particles):
+    def create_disk(self, disk_mass, disk_inner_radius, disk_outer_radius, bh_mass, n_particles, bh_1_loc, bh_1_vel):
         """
         Creates a hydrodynamics disk around the specified location. Stores it as a property of the disk.
 
@@ -25,17 +25,39 @@ class hydro_sim():
         """
         
 
-        converter = nbody_system.nbody_to_si(bh_mass, disk_inner_radius)
+        converter1 = nbody_system.nbody_to_si(bh_mass[0], disk_inner_radius[0])
         disk = ProtoPlanetaryDisk(
             n_particles,
-            convert_nbody=converter,
+            convert_nbody=converter1,
             densitypower=1.5,
             Rmin=1,
-            Rmax=disk_outer_radius /disk_inner_radius,
+            Rmax=disk_outer_radius[0] /disk_inner_radius[0],
             q_out=1.0,
-            discfraction=disk_mass / bh_mass,
+            discfraction=disk_mass[0] / bh_mass[0],
         ).result
-        com = disk.center_of_mass()
+        #com = disk.center_of_mass()
+
+        converter2 = nbody_system.nbody_to_si(bh_mass[1], disk_inner_radius[1])
+        disk_2 = ProtoPlanetaryDisk(
+            n_particles,
+            convert_nbody=converter2,
+            densitypower=1.5,
+            Rmin=1,
+            Rmax=disk_outer_radius[1] /disk_inner_radius[1],
+            q_out=1.0,
+            discfraction=disk_mass[1] / bh_mass[1],
+        ).result
+
+        
+        disk.x += bh_1_loc[0]
+        disk.y += bh_1_loc[1]
+        disk.z += bh_1_loc[2]
+
+        disk.vx += bh_1_vel[0]
+        disk.vx += bh_1_vel[1]
+        disk.vx += bh_1_vel[2]
+
+        disk.add_particles(disk_2)
 
         self.disk = disk
 
@@ -46,7 +68,7 @@ class hydro_sim():
 
 
 
-    def setup_hydro_simulation(self,hydro):
+    def setup_hydro_simulation(self,hydro,particles:List[Particles]):
         """
         Set up a simulation 
         """
@@ -64,7 +86,8 @@ class hydro_sim():
 
         self.hydro.gas_particles.add_particles(self.disk)
         self.hydro.gas_particles.new_channel_to(self.disk)
-        self.hydro.dm_particles.add_particles(self.bh)
+        #self.hydro.dm_particles.add_particles(self.bh)
+        self.hydro.dm_particles.add_particles(particles)
         #self.hydro.dm_particles.new_channel_to(self.star)
 
         self.hydro_to_disk = self.hydro.gas_particles.new_channel_to(self.disk)
@@ -88,6 +111,23 @@ class hydro_sim():
         self.hydro.evolve_model(self.time)
         self.hydro_to_disk.copy()
         return
+
+    def check_high_density(self,threshold):
+        """
+        this is a primitive version of the simulation, an actual jeans test would be much better.
+        """
+
+        highdens = self.disk.select_array(lambda rho:rho>threshold, ["rho"])
+        candidate_sinks = highdens.copy()
+        self.disk.remove_particles(highdens)
+
+        #newsinks_in_code = hydro.dm_particles.add_particles(candidate_sinks)
+        #newsinks = Particles()
+        #for nsi in newsinks_in_code:
+        #    if nsi not in self.sink_particles:
+        #        newsinks.add_particle(nsi)
+        #sink_particles.add_sinks(newsinks)
+        return highdens
 
 
 if __name__ == "__main__":
