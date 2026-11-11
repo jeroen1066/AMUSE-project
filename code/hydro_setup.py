@@ -71,8 +71,8 @@ class hydro_sim():
         self.disk = disk
 
         bh = Particles()
-        bh.mass = bh_mass
-        self.bh = bh
+        #bh.mass = bh_mass
+        #self.bh = bh
         return disk
 
 
@@ -82,7 +82,7 @@ class hydro_sim():
         Set up a simulation 
         """
         
-        self.time = 0|units.yr
+        self.time = 0.0|units.yr
         self.disk.r2 = self.disk.x**2 +self.disk.y**2
         self.disk = self.disk.sorted_by_attributes("r2")
         radius_max = self.disk.r2.max().sqrt()
@@ -114,9 +114,11 @@ class hydro_sim():
 
 
         self.old_time = self.time
-        self.time += dt 
-
-        self.hydro.evolve_model(self.time)
+        print(self.time)
+        
+        large_step = 100|units.yr
+        self.hydro.evolve_model(self.time+large_step)
+        self.time += large_step 
         self.hydro_to_disk.copy()
         return
 

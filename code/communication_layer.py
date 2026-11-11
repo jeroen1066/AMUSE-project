@@ -1,7 +1,8 @@
-import grav_setup as grav
-import hydro_setup as hydro_sim
+from grav_setup import grav
+from hydro_setup import hydro_sim
 from amuse.community.gadget2 import Gadget2
 from amuse.units import units
+import numpy as np
 """
 This file handles the integration of the gravity simulation and the hydro simulation. It is where the check for star formation is done, 
 and the simulation is managed. This is also the layer the main program will interact with directly. 
@@ -28,18 +29,18 @@ class simulation:
             outer_radii: tuple of the outer radii of the disks
         """
 
-        self.grav.create_black_holes(apoapsis,periapsis,masses_bh[1])
+        self.grav.create_black_hole(apoapsis,periapsis,masses_bh[1])
         print(self.grav.bodies)
         
         self.hydro.create_disk(masses_disks,inner_gaps,outer_radii,masses_bh,particles_per_disk,self.grav.bodies)
         
 
-        particles = self.grav.particles
+        particles = self.grav.bodies
 
         self.hydro.setup_hydro_simulation(Gadget2,particles)
         self.grav.setup_grav_simulation()
 
-        self.update_particles_to_disks = self.grav.grav.particles.new_channel_to(self.hydro.hydro.dm_particles)
+        self.update_particles_to_disks = self.grav.gravity.particles.new_channel_to(self.hydro.hydro.dm_particles)
 
         return
 
@@ -71,6 +72,13 @@ if __name__ == "__main__":
     """
 
     sim = simulation(10**6|units.MSun)
-    sim.initial_setup([100|units.pc,0.999])
-    orbelem = []
-    sim
+    r_p = 0.1|units.pc
+    r_a = 100|units.pc
+
+    masses_bh = np.array([10**7|units.MSun,10**4|units.MSun])
+    masses_disks= masses_bh*0.001
+    inner_gaps = [0.1|units.au,0.1|units.au]
+    outer_radii = [100|units.au,20|units.au]
+
+    sim.initial_setup(r_a,r_p,masses_bh,masses_disks,inner_gaps,outer_radii,20000)
+    sim.propagate_simulation(100|units.yr,10|units.yr)
