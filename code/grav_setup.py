@@ -31,16 +31,21 @@ class grav():
         self.potential_energies = []
         self.total_energies = []
 
-    def create_black_hole(self, orb_elem, mass_2bh):
+    def create_black_hole(self, r_a, r_p, mass_2bh):
         """
         Creates a binary black hole system with properties specified by the arguments:
 
         Args:
-            orb_elem: The orbital elements of the incoming black hole (with a and e), should be list
+            r_a: the farthest distance in the orbit from the central black hole
+            r_p: the closest distance in the orbit from the central black hole
             mass_2bh: the mass of the incoming black hole
         """
 
-        self.bodies = new_binary_from_orbital_elements(self.Mass_central_bh, mass_2bh, orb_elem[0], orb_elem[1], 240|units.deg)
+        # calculate the orbital elements (semi major axis and eccentricity) from the furthest and closests approach
+        semi_major = (r_p + r_a) / 2
+        eccentri = (r_a - r_p) / (r_a + r_p)
+        
+        self.bodies = new_binary_from_orbital_elements(self.Mass_central_bh, mass_2bh, semi_major, eccentri, 240|units.deg)
         self.bodies.name = ["Central black hole", "Incoming black hole"]
 
         # Calculate Schwarzschild radii based on their mass
@@ -128,7 +133,7 @@ class grav():
         # 1. Separation
         plt.figure()
         plt.plot(times, separations)
-        plt.scatter(times[np.argmin(separations)], separations[np.argmin(separations)], label=f"Closest Separation (t={times[np.argmin(separations)]:.0f} yr) = {separations[np.argmin(separations)]:.1f} pc", c="yellowgreen")
+        plt.scatter(times[np.argmin(separations)], separations[np.argmin(separations)], label=f"Closest Separation (t={times[np.argmin(separations)]:.0f} yr) = {separations[np.argmin(separations)]:.4f} pc", c="yellowgreen")
         plt.scatter(times[0], separations[0], label=f"Initial Separation (t=0) = {separations[0]:.1f} pc", c="orange")
         plt.xlabel("Time (yr)")
         plt.ylabel("Separation (pc)")
@@ -165,9 +170,12 @@ if __name__ == "__main__":
     Use this to test whether everything is working properly and test your code independently of the rest.
     """
 
-    # set some masses and orbital parameters and simulate
-    grav_sim = grav(1e5|units.Msun)
-    grav_sim.create_black_hole([200|units.pc, 0.999], 1e3|units.Msun)
+    # set the orbital parameters and simulate 
+    r_a = 40 | units.pc # farthest distance between incoming and central black hole, is not what actually is simulated
+    r_p = 0.6 | units.pc # closests separation
+    
+    grav_sim = grav(1e7|units.Msun)
+    grav_sim.create_black_hole(r_a, r_p, 1e4|units.Msun)
 
     grav_sim.setup_grav_simulation()
     grav_sim.propagate_grav_simulation(10|units.yr, 40000|units.yr)
