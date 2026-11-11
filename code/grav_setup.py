@@ -68,7 +68,6 @@ class grav():
         gravity.particles.add_particles(self.bodies)
         self.channel_from_gravity = (gravity.particles.new_channel_to(self.bodies))
         self.gravity = gravity
-        self.time = 0 | units.yr
 
     def record_information(self):
         """
@@ -94,25 +93,28 @@ class grav():
         total_energy = (self.gravity.kinetic_energy + self.gravity.potential_energy)
         self.total_energies.append(total_energy)
 
-    def propagate_grav_simulation(self, dt):
+    def propagate_grav_simulation(self, dt, tend):
         """
         Do a part of the gravity simulation
         """
-        
+        time = 0 | units.yr
     
         # record the initial conditions
         self.record_information()
         
-        self.time += dt
-        self.gravity.evolve_model(self.time)
-        self.channel_from_gravity.copy()
-        scatter(self.bodies.x,self.bodies.y,s=np.sqrt(self.bodies.mass/self.bodies.mass.sum()))
+        time = 0|units.yr
+        while self.gravity.model_time < tend:
+            time += dt
+            self.gravity.evolve_model(time)
+            self.channel_from_gravity.copy()
+            scatter(self.bodies.x,self.bodies.y,s=np.sqrt(self.bodies.mass/self.bodies.mass.sum()))
 
-        # record current information
-        self.record_information()
+            # record current information
+            self.record_information()
 
         plt.show()
         
+        self.gravity.stop()
         
 
     def plot_information(self):
@@ -127,6 +129,9 @@ class grav():
         kinetic = [e.value_in(units.J) for e in self.kinetic_energies]
         potential = [e.value_in(units.J) for e in self.potential_energies]
         total = [e.value_in(units.J) for e in self.total_energies]
+
+        error_energies = np.asarray(self.total_energies) - np.asarray(self.kinetic_energies) - np.asarray(self.potential_energies)
+        error = [e.value_in(units.J) for e in error_energies]
 
         # 1. Separation
         plt.figure()
@@ -160,6 +165,14 @@ class grav():
         plt.legend()
         plt.show()
 
+        # 4. Error in energy
+        plt.figure()
+        plt.plot(times, error)
+        plt.xlabel("Time (yr)")
+        plt.ylabel("Energy (J)")
+        plt.title("Error in Total Energy")
+        plt.show()
+        
 
 
 if __name__ == "__main__":
@@ -168,15 +181,19 @@ if __name__ == "__main__":
     Use this to test whether everything is working properly and test your code independently of the rest.
     """
 
-    # set the orbital parameters and simulate 
+    # set the orbital parameters and masses
     r_a = 40 | units.pc # farthest distance between incoming and central black hole, is not what actually is simulated
-    r_p = 0.6 | units.pc # closests separation
+    r_p = 0.2 | units.pc # closests separation
     
-    grav_sim = grav(1e7|units.Msun)
-    grav_sim.create_black_hole(r_a, r_p, 1e4|units.Msun)
+    central_bh_mass = 1e7|units.Msun
+    second_bh_mass = 1e4|units.Msun
+
+    # simulate
+    grav_sim = grav(central_bh_mass)
+    grav_sim.create_black_hole(r_a, r_p, second_bh_mass)
 
     grav_sim.setup_grav_simulation()
-    grav_sim.propagate_grav_simulation(10|units.yr, 40000|units.yr)
+    grav_sim.propagate_grav_simulation(10|units.yr, 40000|units.yr) # simulate for 40000 years in steps of 10 yr
 
     # plot information
     grav_sim.plot_information()
