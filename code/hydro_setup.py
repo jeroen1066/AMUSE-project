@@ -12,7 +12,7 @@ class hydro_sim():
     def __init__(self):
         pass
 
-    def create_disk(self, disk_mass, disk_inner_radius, disk_outer_radius, bh_mass, n_particles, bh_1_loc, bh_1_vel):
+    def create_disk(self, disk_mass, disk_inner_radius, disk_outer_radius, bh_mass, n_particles, bh_bodies):
         """
         Creates a hydrodynamics disk around the specified location. Stores it as a property of the disk.
 
@@ -23,16 +23,26 @@ class hydro_sim():
             disk_inner_radius: gap between the center and the start of the disk
             disk_outer_radius: furthest radial extent of the disk 
         """
-        
+        density_power_exp=1.5
+        q_out = 1.
+
+        central_bh = bh_bodies[0]
+        infalling_bh = bh_bodies[1]
+
+        central_loc = central_bh.position
+        central_vel = central_bh.velocity
+
+        infalling_loc = infalling_bh.position
+        infalling_vel = infalling_bh.velocity
 
         converter1 = nbody_system.nbody_to_si(bh_mass[0], disk_inner_radius[0])
         disk = ProtoPlanetaryDisk(
             n_particles,
             convert_nbody=converter1,
-            densitypower=1.5,
+            densitypower=density_power_exp,
             Rmin=1,
             Rmax=disk_outer_radius[0] /disk_inner_radius[0],
-            q_out=1.0,
+            q_out=q_out,
             discfraction=disk_mass[0] / bh_mass[0],
         ).result
         #com = disk.center_of_mass()
@@ -41,22 +51,21 @@ class hydro_sim():
         disk_2 = ProtoPlanetaryDisk(
             n_particles,
             convert_nbody=converter2,
-            densitypower=1.5,
+            densitypower=density_power_exp,
             Rmin=1,
             Rmax=disk_outer_radius[1] /disk_inner_radius[1],
-            q_out=1.0,
+            q_out=q_out,
             discfraction=disk_mass[1] / bh_mass[1],
         ).result
 
         
-        disk.x += bh_1_loc[0]
-        disk.y += bh_1_loc[1]
-        disk.z += bh_1_loc[2]
+        disk_2.position += infalling_loc
+        disk_2.velocity += infalling_vel
+        
 
-        disk.vx += bh_1_vel[0]
-        disk.vx += bh_1_vel[1]
-        disk.vx += bh_1_vel[2]
-
+        disk.position += central_loc
+        disk.velocity += central_vel
+        
         disk.add_particles(disk_2)
 
         self.disk = disk
@@ -72,7 +81,6 @@ class hydro_sim():
         """
         Set up a simulation 
         """
-
         
         self.time = 0|units.yr
         self.disk.r2 = self.disk.x**2 +self.disk.y**2

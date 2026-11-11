@@ -68,6 +68,7 @@ class grav():
         gravity.particles.add_particles(self.bodies)
         self.channel_from_gravity = (gravity.particles.new_channel_to(self.bodies))
         self.gravity = gravity
+        self.time = 0 | units.yr
 
     def record_information(self):
         """
@@ -93,28 +94,25 @@ class grav():
         total_energy = (self.gravity.kinetic_energy + self.gravity.potential_energy)
         self.total_energies.append(total_energy)
 
-    def propagate_grav_simulation(self, dt, tend):
+    def propagate_grav_simulation(self, dt):
         """
         Do a part of the gravity simulation
         """
-        time = 0 | units.yr
+        
     
         # record the initial conditions
         self.record_information()
         
-        time = 0|units.yr
-        while self.gravity.model_time < tend:
-            time += dt
-            self.gravity.evolve_model(time)
-            self.channel_from_gravity.copy()
-            scatter(self.bodies.x,self.bodies.y,s=np.sqrt(self.bodies.mass/self.bodies.mass.sum()))
+        self.time += dt
+        self.gravity.evolve_model(self.time)
+        self.channel_from_gravity.copy()
+        scatter(self.bodies.x,self.bodies.y,s=np.sqrt(self.bodies.mass/self.bodies.mass.sum()))
 
-            # record current information
-            self.record_information()
+        # record current information
+        self.record_information()
 
         plt.show()
         
-        self.gravity.stop()
         
 
     def plot_information(self):
