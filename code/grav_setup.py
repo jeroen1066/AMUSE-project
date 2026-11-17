@@ -68,6 +68,7 @@ class grav():
         gravity.particles.add_particles(self.bodies)
         self.channel_from_gravity = (gravity.particles.new_channel_to(self.bodies))
         self.gravity = gravity
+        self.time = 0 | units.yr
 
     def record_information(self):
         """
@@ -115,6 +116,14 @@ class grav():
         plt.show()
         
         self.gravity.stop()
+
+    def propagate_grav_simulation_single_step(self, dt):
+        self.time += dt
+        self.gravity.evolve_model(self.time)
+        self.channel_from_gravity.copy()
+
+        # record current information
+    
         
 
     def plot_information(self):

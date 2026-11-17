@@ -40,20 +40,21 @@ class hydro_sim():
             n_particles,
             convert_nbody=converter1,
             densitypower=density_power_exp,
-            Rmin=1,
-            Rmax=disk_outer_radius[0] /disk_inner_radius[0],
+            radius_min=1,
+            radius_max=disk_outer_radius[0] /disk_inner_radius[0],
             q_out=q_out,
             discfraction=disk_mass[0] / bh_mass[0],
         ).result
         #com = disk.center_of_mass()
+        print(converter1.to_si(1 | nbody_system.time))
 
         converter2 = nbody_system.nbody_to_si(bh_mass[1], disk_inner_radius[1])
         disk_2 = ProtoPlanetaryDisk(
             n_particles,
             convert_nbody=converter2,
             densitypower=density_power_exp,
-            Rmin=1,
-            Rmax=disk_outer_radius[1] /disk_inner_radius[1],
+            radius_min=1,
+            radius_max=disk_outer_radius[1] /disk_inner_radius[1],
             q_out=q_out,
             discfraction=disk_mass[1] / bh_mass[1],
         ).result
@@ -114,11 +115,14 @@ class hydro_sim():
 
 
         self.old_time = self.time
-        print(self.time)
+
         
-        large_step = 100|units.yr
-        self.hydro.evolve_model(self.time+large_step)
-        self.time += large_step 
+        #large_step = 100|units.yr
+        print("Start time: ", self.time)
+        print("Timestep:   ", dt)
+        print("End time:   ", self.time+dt)
+        self.hydro.evolve_model(self.time+dt)
+        self.time += dt
         self.hydro_to_disk.copy()
         return
 

@@ -55,11 +55,13 @@ class simulation:
             t+= timestep
             self.hydro.propagate_hydro(timestep)
 
-            new_stars = self.hydro_1.check_high_density()
+            new_stars = self.hydro.check_high_density(1000 | units.kg/units.m**3)
 
-            self.gravity.particles.add_particles(new_stars)
-            self.update_particles_to_disks.update()
-            self.gravity.propagate_grav_simulation(timestep)
+            #print(self.update_particles_to_disks.__dict__.keys())
+
+            self.grav.bodies.add_particles(new_stars)
+            self.update_particles_to_disks.copy()
+            self.grav.propagate_grav_simulation_single_step(timestep)
 
         self.grav.gravity.stop()
         self.hydro.hydro.stop()
@@ -77,8 +79,8 @@ if __name__ == "__main__":
 
     masses_bh = np.array([10**7|units.MSun,10**4|units.MSun])
     masses_disks= masses_bh*0.001
-    inner_gaps = [0.1|units.au,0.1|units.au]
-    outer_radii = [100|units.au,20|units.au]
+    inner_gaps = [1|units.pc,1|units.pc]
+    outer_radii = [10|units.pc,2|units.pc]
 
     sim.initial_setup(r_a,r_p,masses_bh,masses_disks,inner_gaps,outer_radii,20000)
-    sim.propagate_simulation(100|units.yr,10|units.yr)
+    sim.propagate_simulation(105|units.yr,10|units.yr)
