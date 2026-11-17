@@ -8,6 +8,9 @@ from amuse.datamodel import Particles
 from amuse.community.gadget2 import Gadget2
 from amuse.ext.protodisk import ProtoPlanetaryDisk
 
+import numpy as np
+import matplotlib.pyplot as plt
+
 class hydro_sim():
     def __init__(self):
         pass
@@ -45,8 +48,6 @@ class hydro_sim():
             q_out=q_out,
             discfraction=disk_mass[0] / bh_mass[0],
         ).result
-        #com = disk.center_of_mass()
-        print(converter1.to_si(1 | nbody_system.time))
 
         converter2 = nbody_system.nbody_to_si(bh_mass[1], disk_inner_radius[1])
         disk_2 = ProtoPlanetaryDisk(
@@ -59,9 +60,11 @@ class hydro_sim():
             discfraction=disk_mass[1] / bh_mass[1],
         ).result
 
-        
+        print(disk_2.velocity[0])
         disk_2.position += infalling_loc
         disk_2.velocity += infalling_vel
+        print(disk_2.velocity[0])
+        print(infalling_vel.value_in(units.m/units.s))
         
 
         disk.position += central_loc
@@ -118,9 +121,6 @@ class hydro_sim():
 
         
         #large_step = 100|units.yr
-        print("Start time: ", self.time)
-        print("Timestep:   ", dt)
-        print("End time:   ", self.time+dt)
         self.hydro.evolve_model(self.time+dt)
         self.time += dt
         self.hydro_to_disk.copy()
@@ -142,6 +142,40 @@ class hydro_sim():
         #        newsinks.add_particle(nsi)
         #sink_particles.add_sinks(newsinks)
         return highdens
+
+
+    def plot_disks(self,filename,index):
+        # Get gas particle properties
+        #print(self.hydro.__dict__.keys())
+        particles = self.hydro.gas_particles
+        x = particles.x.value_in(units.pc)
+        y = particles.y.value_in(units.pc)
+        rho = particles.rho.value_in(units.kg / units.m**3)
+
+        rho_mod = (np.log10(rho)+20)**(1/8)
+
+        # Distance from centre
+        #r = np.sqrt(x**2 + y**2)
+
+        # Sort particles by distance
+        #indices = np.argsort(r)
+
+        plt.figure()
+        plt.scatter(x, y, s=1, c=rho_mod,cmap= "viridis")
+        max_density = np.max(rho)
+        min_density = np.min(rho)
+        #print("Max density: ", max_density)
+        #print("Min_density: ", min_density)
+        cbar = plt.colorbar()
+
+        plt.xlabel("X (PC)")
+        plt.ylabel("Y (PC)")
+
+        plt.title("Gas density profile")
+        name = filename + str(index).zfill(4) + ".jpg"
+        plt.savefig(name)
+        plt.close()
+
 
 
 if __name__ == "__main__":

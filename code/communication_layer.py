@@ -50,6 +50,8 @@ class simulation:
         """
         t = 0 |units.yr
         treshold= 100
+        filename = "disk_overview"
+        index = 0
 
         while t < t_end:
             t+= timestep
@@ -57,14 +59,16 @@ class simulation:
 
             new_stars = self.hydro.check_high_density(1000 | units.kg/units.m**3)
 
-            #print(self.update_particles_to_disks.__dict__.keys())
-
             self.grav.bodies.add_particles(new_stars)
             self.update_particles_to_disks.copy()
             self.grav.propagate_grav_simulation_single_step(timestep)
+            self.hydro.plot_disks(filename,index)
+            index += 1
+            print(t)
 
         self.grav.gravity.stop()
         self.hydro.hydro.stop()
+        
 
 
 if __name__ == "__main__":
@@ -74,13 +78,13 @@ if __name__ == "__main__":
     """
 
     sim = simulation(10**6|units.MSun)
-    r_p = 0.1|units.pc
-    r_a = 100|units.pc
+    r_p = 2|units.pc
+    r_a = 10000|units.pc
 
     masses_bh = np.array([10**7|units.MSun,10**4|units.MSun])
     masses_disks= masses_bh*0.001
-    inner_gaps = [1|units.pc,1|units.pc]
-    outer_radii = [10|units.pc,2|units.pc]
+    inner_gaps = [1|units.pc,0.01|units.pc]
+    outer_radii = [5|units.pc,0.5|units.pc]
 
     sim.initial_setup(r_a,r_p,masses_bh,masses_disks,inner_gaps,outer_radii,20000)
-    sim.propagate_simulation(105|units.yr,10|units.yr)
+    sim.propagate_simulation(100000|units.yr,1000|units.yr)
