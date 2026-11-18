@@ -45,7 +45,7 @@ class grav():
         semi_major = (r_p + r_a) / 2
         eccentri = (r_a - r_p) / (r_a + r_p)
         
-        self.bodies = new_binary_from_orbital_elements(self.Mass_central_bh, mass_2bh, semi_major, eccentri, 240|units.deg)
+        self.bodies = new_binary_from_orbital_elements(self.Mass_central_bh, mass_2bh, semi_major, eccentri, 220|units.deg)
         self.bodies.name = ["Central black hole", "Incoming black hole"]
 
         # Calculate Schwarzschild radii based on their mass

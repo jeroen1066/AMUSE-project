@@ -1,6 +1,7 @@
 from grav_setup import grav
 from hydro_setup import hydro_sim
 from amuse.community.gadget2 import Gadget2
+from amuse.community.phantom import Phantom
 from amuse.units import units
 import numpy as np
 """
@@ -30,7 +31,6 @@ class simulation:
         """
 
         self.grav.create_black_hole(apoapsis,periapsis,masses_bh[1])
-        print(self.grav.bodies)
         
         self.hydro.create_disk(masses_disks,inner_gaps,outer_radii,masses_bh,particles_per_disk,self.grav.bodies)
         
@@ -57,7 +57,8 @@ class simulation:
             t+= timestep
             self.hydro.propagate_hydro(timestep)
 
-            new_stars = self.hydro.check_high_density(1000 | units.kg/units.m**3)
+            #new_stars = self.hydro.check_high_density(1000 | units.kg/units.m**3)
+            new_stars = self.hydro.check_jeans_mass()
 
             self.grav.bodies.add_particles(new_stars)
             self.update_particles_to_disks.copy()
@@ -81,10 +82,10 @@ if __name__ == "__main__":
     r_p = 2|units.pc
     r_a = 10000|units.pc
 
-    masses_bh = np.array([10**7|units.MSun,10**4|units.MSun])
-    masses_disks= masses_bh*0.001
-    inner_gaps = [1|units.pc,0.01|units.pc]
-    outer_radii = [5|units.pc,0.5|units.pc]
+    masses_bh = np.array([10**6|units.MSun,10**4|units.MSun])
+    masses_disks= masses_bh*0.0001
+    inner_gaps = [1|units.pc,0.1|units.pc]
+    outer_radii = [15|units.pc,0.5|units.pc]
 
     sim.initial_setup(r_a,r_p,masses_bh,masses_disks,inner_gaps,outer_radii,20000)
-    sim.propagate_simulation(100000|units.yr,1000|units.yr)
+    sim.propagate_simulation(1000000|units.yr,1000|units.yr)
