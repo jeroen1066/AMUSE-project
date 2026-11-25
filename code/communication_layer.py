@@ -2,6 +2,7 @@ from grav_setup import grav
 from hydro_setup import hydro_sim
 from amuse.community.gadget2 import Gadget2
 from amuse.community.phantom import Phantom
+from amuse.community.fi import Fi
 from amuse.units import units
 import numpy as np
 """
@@ -55,17 +56,21 @@ class simulation:
 
         while t < t_end:
             t+= timestep
+            #self.hydro.propagate_hydro(1|units.s)
+            #self.hydro.plot_disks(filename,index,self.grav.bodies)
             self.hydro.propagate_hydro(timestep)
-
-            #new_stars = self.hydro.check_high_density(1000 | units.kg/units.m**3)
-            new_stars = self.hydro.check_jeans_mass()
-
-            self.grav.bodies.add_particles(new_stars)
-            self.update_particles_to_disks.copy()
             self.grav.propagate_grav_simulation_single_step(timestep)
-            self.hydro.plot_disks(filename,index)
+            self.update_particles_to_disks.copy()
+            new_stars = self.hydro.check_jeans_mass()
+            #if len(new_stars)>0:
+            #    print("new stars were born this timestep!")
+            #    self.grav.bodies.add_particles(new_stars)
+            #    self.update_particles_to_disks.copy()
+
+            
+            self.hydro.plot_disks(filename,index,self.grav.bodies)
             index += 1
-            print(t)
+            print(t.value_in(units.day))
 
         self.grav.gravity.stop()
         self.hydro.hydro.stop()
@@ -79,13 +84,13 @@ if __name__ == "__main__":
     """
 
     sim = simulation(10**6|units.MSun)
-    r_p = 2|units.pc
-    r_a = 10000|units.pc
+    r_p = 10|units.au
+    r_a = 10|units.pc
 
-    masses_bh = np.array([10**6|units.MSun,10**4|units.MSun])
+    masses_bh = np.array([10**6|units.MSun,10**5|units.MSun])
     masses_disks= masses_bh*0.0001
-    inner_gaps = [1|units.pc,0.1|units.pc]
-    outer_radii = [15|units.pc,0.5|units.pc]
+    inner_gaps = [5|units.au,1|units.au]
+    outer_radii = [100|units.au,50|units.au]
 
     sim.initial_setup(r_a,r_p,masses_bh,masses_disks,inner_gaps,outer_radii,20000)
-    sim.propagate_simulation(1000000|units.yr,1000|units.yr)
+    sim.propagate_simulation(0.5|units.yr,1|units.day)
