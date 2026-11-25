@@ -6,7 +6,6 @@ This program handles the hydrodynamics simulation with the disks. It should cont
 from amuse.units import units, nbody_system, constants
 from amuse.datamodel import Particles
 from amuse.community.gadget2 import Gadget2
-from amuse.community.phantom import Phantom
 from amuse.ext.protodisk import ProtoPlanetaryDisk
 
 import numpy as np
@@ -52,7 +51,7 @@ class hydro_sim():
 
         converter2 = nbody_system.nbody_to_si(bh_mass[1], disk_inner_radius[1])
         disk_2 = ProtoPlanetaryDisk(
-            n_particles,
+            round(n_particles*disk_mass[1]/disk_mass[0]),
             convert_nbody=converter2,
             densitypower=density_power_exp,
             radius_min=1,
@@ -89,22 +88,20 @@ class hydro_sim():
         self.disk = self.disk.sorted_by_attributes("r2")
         radius_max = self.disk.r2.max().sqrt()
         self.hydro = hydro(
-            nbody_system.nbody_to_si(self.disk.mass.sum(), radius_max), number_of_workers=4,
-                            )
+            nbody_system.nbody_to_si(self.disk.mass.sum(), radius_max), number_of_workers=1,
+        )#redirection="none")
 
         self.hydro.parameters.epsilon_squared = (0.001 | units.pc) ** 2
 
         self.hydro.gas_particles.add_particles(self.disk)
         self.hydro.gas_particles.new_channel_to(self.disk)
-        #self.hydro.dm_particles.add_particles(self.bh)
         self.hydro.dm_particles.add_particles(particles)
-        #self.hydro.dm_particles.new_channel_to(self.star)
 
         self.hydro_to_disk = self.hydro.gas_particles.new_channel_to(self.disk)
         self.disk_to_hydro = self.disk.new_channel_to(self.hydro.gas_particles)
-
-        self.hydro.evolve_model(1 | units.s)
-        self.hydro_to_disk.copy()
+        #self.hydro.set_dtime(10|units.yr)
+        #self.hydro.evolve_model(100 | units.yr)
+        #self.hydro_to_disk.copy()
 
         return
 
@@ -128,8 +125,6 @@ class hydro_sim():
         """
         this is a primitive version of the simulation, an actual jeans test would be much better.
         """
-        #print(self.disk)
-        #print(self.disk.get_attribute_names_defined_in_store())
         highdens = self.disk.select_array(lambda rho:rho>threshold, ["rho"])
         candidate_sinks = highdens.copy()
         self.disk.remove_particles(highdens)
@@ -144,62 +139,66 @@ class hydro_sim():
 
     def check_jeans_mass(self):
 
-        new_sinks = []
         adiabatic_index = 1.5
         sound_speed = (adiabatic_index*self.disk.pressure/self.disk.density).sqrt()#|units.m/units.s
-        #print(sound_speed)
         jeans_mass = np.pi*sound_speed**3/(6*constants.G**(3/2)*self.disk.density**(1/2))
-
+        
         mask = self.disk.mass>jeans_mass
         
-        
-        
-        #for particle in self.disk:
-        #    radius = particle.radius
-            
-        #    sound_speed = np.sqrt(adiabatic_index*particle.pressure/particle.density)
-        #    jeans_mass = np.pi*sound_speed**3/(6*constants.G**(3/2)*particle.density**(1/2))
-        #    if particle.mass > jeans_mass:
-        #        new_sinks.append(particle)
-        #        print("Star formed!")
-        #    else: print("star not formed!")
-        #new_sinks = np.array(new_sinks)
         stars_forming = self.disk[mask]
         self.disk.remove_particles(stars_forming)
+        if len(stars_forming)>0:
+            print(len(stars_forming)," Stars formed this thousand years!")
         return stars_forming
 
+    def sink_particles(self,bodies):
+        for i in range(len(bodies)):
+            particles = self.disk
+            sink_particle = bodies[i]
 
-    def plot_disks(self,filename,index):
+            pos_rel = (particles.position - sink_particle.position)
+            len_rel = (pos_rel.x**2+pos_rel.y**2+pos_rel.y**2).sqrt()
+            mask = sink_particle.radius>len_rel
+            particles_to_sink = particles[mask]
+            bodies[i].mass += particles_to_sink.mass.sum()
+            self.disk.remove_particles(particles_to_sink)
+        return bodies
+
+    def get_jeans_mass(self):
+        adiabatic_index = 1.5
+        sound_speed = (adiabatic_index*self.hydro.gas_particles.pressure/self.hydro.gas_particles.density).sqrt()#|units.m/units.s
+        
+        return self.hydro.gas_particles.mass/(np.pi*sound_speed**3/(6*constants.G**(3/2)*self.hydro.gas_particles.density**(1/2)))
+
+
+    def plot_disks(self,filename,index,bodies):
         # Get gas particle properties
-        #print(self.hydro.__dict__.keys())
-        particles = self.hydro.gas_particles
-        x = particles.x.value_in(units.pc)
-        y = particles.y.value_in(units.pc)
+        particles = self.disk
+        x = particles.x.value_in(units.au)
+        y = particles.y.value_in(units.au)
         rho = particles.rho.value_in(units.kg / units.m**3)
 
-        dm_particles = self.hydro.dm_particles
-        x_dm = dm_particles.x.value_in(units.pc)
-        y_dm = dm_particles.y.value_in(units.pc)
+        dm_particles = bodies
+        x_dm = dm_particles.x.value_in(units.au)
+        y_dm = dm_particles.y.value_in(units.au)
 
-        rho_mod = np.log10(rho)#(np.log10(rho)+20)**(1/8)
+        #rho = self.get_jeans_mass()
+        rho_mod = np.log10(rho)
+
+        #rho_mod = np.log10(rho)#(np.log10(rho)+20)**(1/8)
 
         # Distance from centre
         #r = np.sqrt(x**2 + y**2)
 
         # Sort particles by distance
         #indices = np.argsort(r)
-
         plt.figure()
         plt.scatter(x, y, s=1, c=rho_mod,cmap= "viridis")
         plt.scatter(x_dm, y_dm,color="r")
-        max_density = np.max(rho)
-        min_density = np.min(rho)
-        #print("Max density: ", max_density)
-        #print("Min_density: ", min_density)
         cbar = plt.colorbar()
 
-        plt.xlabel("X (PC)")
-        plt.ylabel("Y (PC)")
+        plt.xlabel("X (au)")
+        plt.ylabel("Y (au)")
 
         plt.title("Gas density profile")
         name = filename + str(index).zfill(4) + ".jpg"
