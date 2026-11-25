@@ -72,8 +72,6 @@ class hydro_sim():
         self.disk = disk
 
         bh = Particles()
-        #bh.mass = bh_mass
-        #self.bh = bh
         return disk
 
 
@@ -91,7 +89,7 @@ class hydro_sim():
             nbody_system.nbody_to_si(self.disk.mass.sum(), radius_max), number_of_workers=1,
         )#redirection="none")
 
-        self.hydro.parameters.epsilon_squared = (0.001 | units.pc) ** 2
+        self.hydro.parameters.epsilon_squared = (1 | units.au) ** 2
 
         self.hydro.gas_particles.add_particles(self.disk)
         self.hydro.gas_particles.new_channel_to(self.disk)
