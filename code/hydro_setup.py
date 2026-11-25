@@ -86,10 +86,10 @@ class hydro_sim():
         self.disk = self.disk.sorted_by_attributes("r2")
         radius_max = self.disk.r2.max().sqrt()
         self.hydro = hydro(
-            nbody_system.nbody_to_si(self.disk.mass.sum(), radius_max), number_of_workers=1,
+            nbody_system.nbody_to_si(self.disk.mass.sum(), radius_max), number_of_workers=4,
         )#redirection="none")
 
-        self.hydro.parameters.epsilon_squared = (1 | units.au) ** 2
+        self.hydro.parameters.epsilon_squared = (0.5 | units.au) ** 2
 
         self.hydro.gas_particles.add_particles(self.disk)
         self.hydro.gas_particles.new_channel_to(self.disk)
@@ -190,17 +190,22 @@ class hydro_sim():
 
         # Sort particles by distance
         #indices = np.argsort(r)
-        plt.figure()
-        plt.scatter(x, y, s=1, c=rho_mod,cmap= "viridis")
-        plt.scatter(x_dm, y_dm,color="r")
-        cbar = plt.colorbar()
+        
+        fig,ax = plt.subplots()
+        plot = ax.scatter(x, y, s=1, c=rho_mod,cmap= "viridis",vmin=-11,vmax=-3)
+        ax.scatter(x_dm, y_dm,color="r")
+        cbar = fig.colorbar(plot)
+        cbar.set_label("Log Gas density [Kg/m^3]")
 
-        plt.xlabel("X (au)")
-        plt.ylabel("Y (au)")
+        ax.set_ylim([-150,150])
+        ax.set_xlim([-150,150])
 
-        plt.title("Gas density profile")
+        ax.set_xlabel("X (au)")
+        ax.set_ylabel("Y (au)")
+
+        fig.suptitle("Gas density profile")
         name = filename + str(index).zfill(4) + ".jpg"
-        plt.savefig(name)
+        fig.savefig(name)
         plt.close()
 
 
